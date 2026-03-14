@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiverso Labyrinth: Escáner Táctico</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&family=Rajdhani:wght@600&display=swap');
+
+        :root {
+            --bg-color: #05050c;
+            --maze-base: #00e5ff;
+            --hud-color: #00e5ff;
+        }
+
+        body {
+            background-color: var(--bg-color); color: #fff; font-family: 'Rajdhani', sans-serif;
+            margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center;
+            height: 100vh; overflow: hidden; transition: background-color 0.8s;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif; font-size: clamp(1.2em, 5vw, 2em); margin: 5px 0;
+            text-shadow: 0 0 10px var(--hud-color); letter-spacing: 3px; text-transform: uppercase;
+        }
+
+        .theme-selector-container {
+            width: 100%; max-width: 500px; margin-bottom: 10px;
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+        }
+        .theme-btn {
+            background: rgba(255,255,255,0.05); border: 1px solid #444; color: #bbb; padding: 6px 12px;
+            border-radius: 20px; cursor: pointer; font-family: 'Orbitron', sans-serif; font-size: 0.75em;
+            transition: all 0.3s;
+        }
+        .theme-btn.active { background: rgba(255,255,255,0.15); color: #fff; border-color: var(--hud-color); box-shadow: 0 0 10px var(--hud-color); transform: scale(1.05); }
+
+        /* HUD MEJORADO */
+        #hud-container {
+            background: rgba(10, 10, 15, 0.9); border: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 4px solid var(--hud-color); padding: 8px 15px; width: 90%; max-width: 450px;
+            display: flex; flex-direction: column; margin-bottom: 10px; gap: 5px;
+        }
+        .hud-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .hud-text { font-size: 1.1em; color: #777; font-weight: bold; }
+        
+        #instructions { font-family: 'Orbitron', sans-serif; color: var(--hud-color); font-size: 0.9em; text-shadow: 0 0 5px var(--hud-color); display: flex; flex-direction: column; align-items: flex-end;}
+        
+        /* Animación para el aviso de peligro */
+        @keyframes pulseWarning { 0% { opacity: 1; text-shadow: 0 0 10px red; } 50% { opacity: 0.4; text-shadow: none; } 100% { opacity: 1; text-shadow: 0 0 10px red; } }
+        .danger-alert { color: #ff003c; animation: pulseWarning 1s infinite; font-weight: bold; }
+        .safe-alert { color: #00ff88; }
+
+        .game-wrapper {
+            position: relative; width: 100%; max-width: 400px; aspect-ratio: 1 / 1;
+            background-color: #000; border-radius: 4px; box-shadow: 0 0 50px rgba(0, 229, 255, 0.1); overflow: hidden;
+        }
+        .maze-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: grid;
+            animation: rgbCycle 10s linear infinite; filter: drop-shadow(0 0 4px var(--maze-base)); 
+        }
+        @keyframes rgbCycle { 0% { filter: hue-rotate(0deg) drop-shadow(0 0 4px var(--maze-base)); } 100% { filter: hue-rotate(360deg) drop-shadow(0 0 4px var(--maze-base)); } }
+
+        .cell { box-sizing: border-box; background-color: rgba(0, 0, 0, 0.5); }
+        .wall-top { border-top: 2px solid var(--maze-base); }
+        .wall-bottom { border-bottom: 2px solid var(--maze-base); }
+        .wall-left { border-left: 2px solid var(--maze-base); }
+        .wall-right { border-right: 2px solid var(--maze-base); }
+
+        .objects-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        .player { position: absolute; transition: top 0.1s linear, left 0.1s linear; z-index: 10; display: flex; justify-content: center; align-items: center; }
+        .player-svg { width: 90%; height: 90%; transition: transform 0.15s linear; filter: drop-shadow(0 0 8px #fff); }
+        .hazard, .exit { position: absolute; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+        .animated-trap { width: 90%; height: 90%; } .animated-exit { width: 80%; height: 80%; }
+
+        #dark-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 5; transition: background 0.1s linear; display: none;
+        }
+
+        .controls-panel { margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+        button.btn { font-family: 'Orbitron', sans-serif; background: transparent; color: #fff; border: 1px solid #666; padding: 6px 15px; cursor: pointer; text-transform: uppercase; border-radius: 4px; font-size: 0.8em; }
+        button.btn:active { background: rgba(255,255,255,0.15); }
+        
+        .d-pad { display: grid; grid-template-columns: 50px 50px 50px; grid-template-rows: 50px 50px 50px; gap: 5px; margin-top: 10px; }
+        .d-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); color: #fff; display: flex; justify-content: center; align-items: center; font-size: 1.5em; cursor: pointer; user-select: none; border-radius: 10px; }
+        #d-up { grid-column: 2; grid-row: 1; } #d-left { grid-column: 1; grid-row: 2; } #d-right { grid-column: 3; grid-row: 2; } #d-down { grid-column: 2; grid-row: 3; }
+        @media (min-width: 768px) { .d-pad { display: none; } }
+    </style>
+</head>
+<body>
+
+    <h1 id="game-title">DATA RUNNER</h1>
+
+    <div class="theme-selector-container">
+        <button class="theme-btn active" onclick="setTheme('cyber', this)">💠 Cyber</button>
+        <button class="theme-btn" onclick="setTheme('space', this)">🚀 Espacio</button>
+        <button class="theme-btn" onclick="setTheme('bio', this)">🦠 Biología</button>
+        <button class="theme-btn" onclick="setTheme('ocean', this)">🌊 Abisal</button>
+        <button class="theme-btn" onclick="setTheme('volcano', this)">🌋 Volcán</button>
+        <button class="theme-btn" onclick="setTheme('ghost', this)">👻 Espectro</button>
+        <button class="theme-btn" onclick="setTheme('ruins', this)">🏜️ Ruinas</button>
+        <button class="theme-btn" onclick="setTheme('steam', this)">⚙️ Steam</button>
+        <button class="theme-btn" onclick="setTheme('toxic', this)">☢️ Tóxico</button>
+        <button class="theme-btn" onclick="setTheme('ice', this)">❄️ Glaciar</button>
+    </div>
+
+    <div id="hud-container">
+        <div class="hud-top">
+            <div class="hud-text" id="hud-label">SISTEMA:</div>
+            <div id="instructions">
+                <span id="gps-dir">CALCULANDO...</span>
+                <span id="gps-warn">---</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="game-wrapper theme-cyber" id="game-wrapper">
+        <div class="maze-layer" id="maze-layer"></div>
+        <div class="objects-layer" id="objects-layer"></div>
+        <div id="dark-overlay"></div>
+    </div>
+
+    <div class="d-pad">
+        <div class="d-btn" id="d-up" onclick="movePlayer('Up')">▲</div>
+        <div class="d-btn" id="d-left" onclick="movePlayer('Left')">◄</div>
+        <div class="d-btn" id="d-right" onclick="movePlayer('Right')">►</div>
+        <div class="d-btn" id="d-down" onclick="movePlayer('Down')">▼</div>
+    </div>
+
+    <div class="controls-panel">
+        <button class="btn" onclick="changeDifficulty(8)">Fácil</button>
+        <button class="btn" onclick="changeDifficulty(12)">Medio</button>
+        <button class="btn" onclick="changeDifficulty(16)">Difícil</button>
+    </div>
+
+    <script>
+        const themeGraphics = {
+            cyber: { player: `<svg class="player-svg" viewBox="0 0 100 100"><defs><radialGradient id="gradP"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#00e5ff"/></radialGradient></defs><polygon points="50,5 95,25 95,75 50,95 5,75 5,25" fill="url(#gradP)" opacity="0.9"/></svg>`, trap: `<svg class="animated-trap" viewBox="0 0 100 100"><path d="M50,5 L90,20 V70 L50,95 L10,70 V20 Z" fill="#300" stroke="#ff003c" stroke-width="3"/><rect x="30" y="45" width="40" height="10" fill="#ff003c"><animate attributeName="opacity" values="0.2;1;0.2" dur="0.5s" repeatCount="indefinite"/></rect></svg>`, exit: `<svg class="animated-exit" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="#b000ff" stroke-width="3" stroke-dasharray="10 5"><animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="3s" repeatCount="indefinite"/></circle><circle cx="50" cy="50" r="25" fill="#b000ff"/></svg>` },
+            space: { player: `<svg class="player-svg" viewBox="0 0 100 100"><polygon points="50,5 15,95 50,75 85,95" fill="#ddd" stroke="#ffaa00" stroke-width="2"/><rect x="40" y="80" width="20" height="15" fill="#ff0000"><animate attributeName="opacity" values="1;0.2;1" dur="0.2s" repeatCount="indefinite"/></rect></svg>`, trap: `<svg class="animated-trap" viewBox="0 0 100 100"><circle cx="50" cy="50" r="10" fill="#000"/><circle cx="50" cy="50" r="45" fill="none" stroke="#ff003c" stroke-width="2" stroke-dasharray="5 15"><animateTransform attributeName="transform" type="rotate" from="360 50 50" to="0 50 50" dur="1s" repeatCount="indefinite"/></circle></svg>`, exit: `<svg class="animated-exit" viewBox="0 0 100 100"><defs><radialGradient id="gradW"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#00ffcc"/></radialGradient></defs><circle cx="50" cy="50" r="40" fill="url(#gradW)"><animate attributeName="r" values="35;45;35" dur="1.5s" repeatCount="indefinite"/></circle></svg>` },
+            /* AQUÍ ESTÁ EL CAMBIO DE BIOLOGÍA: Efecto de latido en lugar de rotación */
+            bio: { player: `<svg class="player-svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="#00ff88" opacity="0.7"><animate attributeName="r" values="43;47;43" dur="2s" repeatCount="indefinite"/></circle><circle cx="50" cy="50" r="15" fill="#fff"/></svg>`, trap: `<svg class="animated-trap" viewBox="0 0 100 100"><style> .bio-heart { transform-origin: 50% 50%; animation: bioPulse 1s infinite; } @keyframes bioPulse { 0% { transform: scale(0.8); } 15% { transform: scale(1.15); } 30% { transform: scale(0.8); } 45% { transform: scale(1.15); } 100% { transform: scale(0.8); } } </style><g class="bio-heart"><circle cx="50" cy="50" r="30" fill="#ff00cc"/><g stroke="#ff00cc" stroke-width="6"><line x1="50" y1="50" x2="50" y2="5"/><line x1="50" y1="50" x2="50" y2="95"/><line x1="50" y1="50" x2="5" y2="50"/><line x1="50" y1="50" x2="95" y2="50"/></g></g></svg>`, exit: `<svg class="animated-exit" viewBox="0 0 100 100"><path d="M30,10 Q50,50 30,90 M70,10 Q50,50 70,90" fill="none" stroke="#ffeb3b" stroke-width="6"><animate attributeName="stroke-dasharray" values="0,100;100,0" dur="1.5s" repeatCount="indefinite"/></path></svg>` },
+            ocean: { player: `<svg class="player-svg" viewBox="0 0 100 100"><rect x="20" y="30" width="60" height="40" rx="20" fill="#ffcc00"/><circle cx="70" cy="50" r="10" fill="#00e5ff"/><rect x="40" y="15" width="10" height="20" fill="#ffcc00"/></svg>`, trap: `<svg class="animated-trap" viewBox="0 0 100 100"><circle cx="50" cy="50" r="35" fill="#444"/><circle cx="50" cy="10" r="6" fill="#f00"><animate attributeName="opacity" values="1;0;1" dur="0.8s" repeatCount="indefinite"/></circle><circle cx="50" cy="90" r="6" fill="#333"/><circle cx="10" cy="50" r="6" fill="#333"/><circle cx="90" cy="50" r="6" fill="#333"/></svg>`, exit: `<svg class="animated-exit" viewBox="0 0 100 100"><path d="M10,80 Q50,100 90,80 Q50,50 10,80" fill="#e0e0e0"/><circle cx="50" cy="65" r="15" fill="#fff" filter="drop-shadow(0 0 5px #0ff)"><animate attributeName="r" values="12;16;12" dur="2s" repeatCount="indefinite"/></circle></svg>` },
+            volcano: { player: `<svg class="player-svg" viewBox="0 0 100 100"><polygon points="30,80 70,80 80,40 50,20 20,40" fill="#333" stroke="#ff5500" stroke-width="3"/><circle cx="50" cy="55" r="10" fill="#ff0000"/></svg>`, trap: `<svg class="animated-trap" viewBox="0 0 100 100"><path d="M20,90 Q50,10 80,90 Z" fill="#ff3300"><animate attributeName="d" values="M20,90 Q50,10 80,90 Z; M30,90 Q50,30 70,90 Z; M20,90 Q50,10 80,90 Z" dur="0.5s" repeatCount="indefinite"/></path></svg>`, exit: `<svg class="animated-exit" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#0055ff"/><path d="M20,50 Q50,20 80,50 Q50,80 20,50" fill="#00aaff"><animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="4s" repeatCount="indefinite"/></path></svg>` },
+            ghost: { player: `<svg class="player-svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="30" fill="#fff" filter="drop-shadow(0 0 10px #fff)"/><circle cx="50" cy="50" r="40" fill="none" stroke="#fff" stroke-width="2"><animate attributeName="r" values="30;45;30" dur="1s" repeatCount="indefinite"/></circle></svg>`, trap: `<svg class="animated-trap" viewBox="0 0 100 100"><path d="M30,80 Q50,20 70,80 Q80,90 90,80 Q70,40 50,10 Q30,40 10,80 Q20,90 30,80" fill="#5500aa" opacity="0.8"><animate attributeName="opacity" values="0.4;0.9;0.4" dur="2s" repeatCount="indefinite"/></path><circle cx="40" cy="40" r="4" fill="#f00"/><circle cx="60" cy="40" r="4" fill="#f00"/></svg>`, exit: `<svg class="animated-exit" viewBox="0 0 100 100"><rect x="30" y="10" width="40" height="80" rx="20" fill="#ffd700" opacity="0.5"/><rect x="35" y="15" width="30" height="70" rx="15" fill="#fff"><animate attributeName="opacity" values="0.6;1;0.6" dur="1.5s" repeatCount="indefinite"/></rect></svg>` },
+            ruins: { player: `<svg class="player-svg" viewBox="0 0 100 100"><polygon points="50,10 90,50 50,90 10,50" fill="#ffd700"/><polygon points="50,30 70,50 50,70 30,50" fill="#ffaa00"/></svg>`, trap: `<svg class="animated-trap" viewBox="0 0 100 100"><rect x="10" y="80" width="80" height="20" fill="#555"/><polygon points="20,80 30,20 40,80" fill="#aaa"><animate attributeName="points" values="20,80 30,20 40,80; 20,80 30,60 40,80; 20,80 30,20 40,80" dur="1s" repeatCount="indefinite"/></polygon><polygon points="60,80 70,20 80,80" fill="#aaa"><animate attributeName="points" values="60,80 70,60 80,80; 60,80 70,20 80,80; 60,80 70,60 80,80" dur="1s" repeatCount="indefinite"/></polygon></svg>`, exit: `<svg class="animated-exit" viewBox="0 0 100 100"><rect x="20" y="20" width="60" height="70" fill="#8b4513" stroke="#ffd700" stroke-width="4"/><line x1="50" y1="20" x2="50" y2="90" stroke="#000" stroke-width="2"/><circle cx="40" cy="55" r="3" fill="#ffd700"/><circle cx="60" cy="55" r="3" fill="#ffd700"/></svg>` },
+            steam: { player: `<svg class="player-svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="35" fill="none" stroke="#cd7f32" stroke-width="8" stroke-dasharray="15 5"><animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="4s" repeatCount="indefinite"/></circle><circle cx="50" cy="50" r="15" fill="#8b4513"/></svg>`, trap: `<svg class="animated-trap" viewBox="0 0 100 100"><rect x="30" y="0" width="40" height="40" fill="#777"><animate attributeName="y" values="0;20;0" dur="0.8s" repeatCount="indefinite"/></rect><rect x="30" y="60" width="40" height="40" fill="#777"><animate attributeName="y" values="60;40;60" dur="0.8s" repeatCount="indefinite"/></rect></svg>`, exit: `<svg class="animated-exit" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#cd7f32"/><circle cx="50" cy="50" r="30" fill="#fff"/><line x1="50" y1="50" x2="50" y2="25" stroke="#000" stroke-width="4"><animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="2s" repeatCount="indefinite"/></line></svg>` },
+            toxic: { player: `<svg class="player-svg" viewBox="0 0 100 100"><rect x="30" y="30" width="40" height="40" rx="10" fill="#555"/><circle cx="50" cy="50" r="12" fill="#39ff14"><animate attributeName="r" values="10;14;10" dur="1s" repeatCount="indefinite"/></circle><polygon points="10,20 30,30 20,40" fill="#aaa"/><polygon points="90,20 70,30 80,40" fill="#aaa"/></svg>`, trap: `<svg class="animated-trap" viewBox="0 0 100 100"><rect x="25" y="20" width="50" height="60" rx="5" fill="#222" stroke="#39ff14" stroke-width="2"/><circle cx="50" cy="50" r="15" fill="#39ff14"/><path d="M50,50 L40,35 A15,15 0 0,1 60,35 Z M50,50 L65,60 A15,15 0 0,1 50,65 Z M50,50 L35,60 A15,15 0 0,0 50,65 Z" fill="#222"/><circle cx="50" cy="50" r="4" fill="#222"/></svg>`, exit: `<svg class="animated-exit" viewBox="0 0 100 100"><rect x="10" y="10" width="80" height="80" rx="10" fill="none" stroke="#00ffff" stroke-width="4"/><path d="M10,50 L90,50 M50,10 L50,90" stroke="#00ffff" stroke-width="2" opacity="0.5"/><rect x="40" y="40" width="20" height="20" fill="#00ffff"><animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/></rect></svg>` },
+            ice: { player: `<svg class="player-svg" viewBox="0 0 100 100"><polygon points="50,10 80,90 50,70 20,90" fill="#add8e6" stroke="#fff" stroke-width="2"/></svg>`, trap: `<svg class="animated-trap" viewBox="0 0 100 100"><polygon points="50,90 20,20 80,20" fill="#00ffff"><animate attributeName="points" values="50,90 20,20 80,20; 50,70 30,20 70,20; 50,90 20,20 80,20" dur="0.6s" repeatCount="indefinite"/></polygon></svg>`, exit: `<svg class="animated-exit" viewBox="0 0 100 100"><path d="M20,80 Q50,40 80,80" fill="#8b4513"/><path d="M40,70 Q50,30 60,70" fill="#ff4500"><animate attributeName="d" values="M40,70 Q50,30 60,70; M45,70 Q50,20 55,70; M40,70 Q50,30 60,70" dur="0.5s" repeatCount="indefinite"/></path></svg>` }
+        };
+
+        const themeConfig = {
+            cyber: { mode: 'classic', title: "DATA RUNNER", label: "ENRUTAMIENTO", crash: "¡FIREWALL!", win: "¡DATOS EXTRAÍDOS!", color: "#00e5ff", baseColor: "#00e5ff", errorColor: "#ff003c" },
+            space: { mode: 'dark', title: "MISIÓN ESTELAR", label: "COORDENADAS", crash: "¡AGUJERO NEGRO!", win: "¡SALTO COMPLETADO!", color: "#ffaa00", baseColor: "#5500ff", errorColor: "#ff003c" },
+            bio: { mode: 'classic', title: "MICRO GUERRERO", label: "RASTREO", crash: "¡INFECCIÓN VÍRICA!", win: "¡SISTEMA CURADO!", color: "#00ff88", baseColor: "#00ffcc", errorColor: "#ff00cc" },
+            ocean: { mode: 'classic', title: "ZONA ABISAL", label: "SONAR", crash: "¡MINA IMPACTADA!", win: "¡RELIQUIA!", color: "#00e5ff", baseColor: "#0033aa", errorColor: "#ff0000" },
+            volcano: { mode: 'time', timeLimit: 20, title: "ESCAPE VOLCÁNICO", label: "RELOJ", crash: "¡ROVER FUNDIDO!", win: "¡ZONA SEGURA!", color: "#ff5500", baseColor: "#aa2200", errorColor: "#ffff00" },
+            ghost: { mode: 'dark', title: "REINO ESPECTRAL", label: "RADAR", crash: "¡ALMA ATRAPADA!", win: "¡TRASCENDENCIA!", color: "#fff", baseColor: "#5500aa", errorColor: "#aa00ff" },
+            ruins: { mode: 'classic', title: "TEMPLO MALDITO", label: "BRÚJULA", crash: "¡TRAMPA MORTAL!", win: "¡TESORO OBTENIDO!", color: "#ffd700", baseColor: "#8b4513", errorColor: "#ff0000" },
+            steam: { mode: 'classic', title: "FÁBRICA CLOCKWORK", label: "PRESIÓN", crash: "¡MECANISMO ROTO!", win: "¡ENGRANAJE CALIBRADO!", color: "#cd7f32", baseColor: "#a0522d", errorColor: "#ff4500" },
+            toxic: { mode: 'time', timeLimit: 15, title: "PLANTA RADIACTIVA", label: "TIEMPO", crash: "¡RADIACIÓN!", win: "¡DESCONTAMINACIÓN!", color: "#39ff14", baseColor: "#228b22", errorColor: "#ffcc00" },
+            ice: { mode: 'ice', title: "GLACIAR (RESBALA)", label: "GPS POLAR", crash: "¡CASCO CONGELADO!", win: "¡REFUGIO!", color: "#add8e6", baseColor: "#00ced1", errorColor: "#ffffff" }
+        };
+
+        let currentTheme = 'cyber'; let currentRotation = 0; 
+        let rows = 12; let cols = 12;
+        let grid = []; let playerPos = { r: 0, c: 0 }; let exitPos = { r: rows - 1, c: cols - 1 };
+        let traps = []; let isAnimating = false; let timerInterval; let timeLeft = 0;
+
+        const wrapper = document.getElementById('game-wrapper'); const mazeLayer = document.getElementById('maze-layer'); const objectsLayer = document.getElementById('objects-layer');
+        const playerEl = document.createElement('div'); playerEl.className = 'player'; playerEl.id = 'player-container';
+        const darkOverlay = document.getElementById('dark-overlay');
+
+        function setTheme(theme, btn = null) {
+            currentTheme = theme;
+            document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+            if(btn) btn.classList.add('active'); else document.querySelector(`[onclick*="${theme}"]`).classList.add('active');
+            wrapper.className = `game-wrapper theme-${theme}`;
+            const data = themeConfig[theme];
+            document.getElementById('game-title').innerText = data.title;
+            document.getElementById('hud-label').innerText = data.label + ":";
+            document.documentElement.style.setProperty('--hud-color', data.color);
+            document.documentElement.style.setProperty('--maze-base', data.baseColor);
+            resetGame();
+        }
+
+        function getSafePath(startR, startC) {
+            const queue = [{r: startR, c: startC, path: []}];
+            const visited = Array(rows).fill().map(() => Array(cols).fill(false)); visited[startR][startC] = true;
+            while (queue.length > 0) {
+                const {r, c, path} = queue.shift(); if (r === exitPos.r && c === exitPos.c) return path;
+                const cell = grid[r][c];
+                const moves = [{r: r-1, c: c, w: 0, d: "NORTE ▲"}, {r: r, c: c+1, w: 1, d: "ESTE ►"}, {r: r+1, c: c, w: 2, d: "SUR ▼"}, {r: r, c: c-1, w: 3, d: "OESTE ◄"}];
+                for (let m of moves) {
+                    if (m.r >= 0 && m.r < rows && m.c >= 0 && m.c < cols && !cell.walls[m.w] && !visited[m.r][m.c]) {
+                        if (!traps.some(t => t.r === m.r && t.c === m.c)) {
+                            visited[m.r][m.c] = true; queue.push({r: m.r, c: m.c, path: [...path, m.d]});
+                        }
+                    }
+                }
+            }
+            return [];
+        }
+
+        function generateMaze() {
+            grid = Array(rows).fill().map(() => Array(cols).fill().map(() => ({ visited: false, walls: [true, true, true, true] })));
+            const stack = []; let current = { r: 0, c: 0 }; grid[current.r][current.c].visited = true;
+
+            while (true) {
+                const unvisited = [];
+                if (current.r > 0 && !grid[current.r-1][current.c].visited) unvisited.push({ r: current.r - 1, c: current.c, wall: 0, opp: 2 });
+                if (current.c < cols - 1 && !grid[current.r][current.c+1].visited) unvisited.push({ r: current.r, c: current.c + 1, wall: 1, opp: 3 });
+                if (current.r < rows - 1 && !grid[current.r+1][current.c].visited) unvisited.push({ r: current.r + 1, c: current.c, wall: 2, opp: 0 });
+                if (current.c > 0 && !grid[current.r][current.c-1].visited) unvisited.push({ r: current.r, c: current.c - 1, wall: 3, opp: 1 });
+
+                if (unvisited.length > 0) {
+                    stack.push(current); const next = unvisited[Math.floor(Math.random() * unvisited.length)];
+                    grid[current.r][current.c].walls[next.wall] = false; grid[next.r][next.c].walls[next.opp] = false;
+                    current = { r: next.r, c: next.c }; grid[current.r][current.c].visited = true;
+                } else if (stack.length > 0) current = stack.pop(); else break;
+            }
+
+            let extraPaths = Math.floor((rows * cols) * 0.1); 
+            for(let i=0; i<extraPaths; i++) {
+                let r = Math.floor(Math.random()*rows); let c = Math.floor(Math.random()*cols);
+                let dir = Math.floor(Math.random()*4);
+                if(dir===0 && r>0) { grid[r][c].walls[0]=false; grid[r-1][c].walls[2]=false; }
+                if(dir===1 && c<cols-1) { grid[r][c].walls[1]=false; grid[r][c+1].walls[3]=false; }
+                if(dir===2 && r<rows-1) { grid[r][c].walls[2]=false; grid[r+1][c].walls[0]=false; }
+                if(dir===3 && c>0) { grid[r][c].walls[3]=false; grid[r][c-1].walls[1]=false; }
+            }
+
+            traps = [];
+            const desiredTraps = Math.floor((rows * cols) * 0.05);
+            let attempts = 0;
+            
+            while(traps.length < desiredTraps && attempts < 100) {
+                let r = Math.floor(Math.random() * rows); let c = Math.floor(Math.random() * cols);
+                if ((r===0 && c===0) || (r===exitPos.r && c===exitPos.c) || traps.some(t => t.r === r && t.c === c)) { attempts++; continue; }
+                traps.push({r, c});
+                if (getSafePath(0, 0).length === 0) { traps.pop(); }
+                attempts++;
+            }
+        }
+
+        function render() {
+            mazeLayer.innerHTML = ''; objectsLayer.innerHTML = '';
+            mazeLayer.style.gridTemplateRows = `repeat(${rows}, 1fr)`; mazeLayer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const cellEl = document.createElement('div'); cellEl.className = 'cell'; const walls = grid[r][c].walls;
+                    if (walls[0]) cellEl.classList.add('wall-top'); if (walls[1]) cellEl.classList.add('wall-right');
+                    if (walls[2]) cellEl.classList.add('wall-bottom'); if (walls[3]) cellEl.classList.add('wall-left');
+                    mazeLayer.appendChild(cellEl);
+                }
+            }
+            const portalEl = document.createElement('div'); portalEl.className = 'exit'; portalEl.innerHTML = themeGraphics[currentTheme].exit;
+            portalEl.style.top = `calc(${exitPos.r} * (100% / ${rows}))`; portalEl.style.left = `calc(${exitPos.c} * (100% / ${cols}))`;
+            portalEl.style.width = `calc(100% / ${cols})`; portalEl.style.height = `calc(100% / ${rows})`; objectsLayer.appendChild(portalEl);
+
+            traps.forEach(trap => {
+                const hazardEl = document.createElement('div'); hazardEl.className = 'hazard'; hazardEl.innerHTML = themeGraphics[currentTheme].trap;
+                hazardEl.style.top = `calc(${trap.r} * (100% / ${rows}))`; hazardEl.style.left = `calc(${trap.c} * (100% / ${cols}))`;
+                hazardEl.style.width = `calc(100% / ${cols})`; hazardEl.style.height = `calc(100% / ${rows})`; objectsLayer.appendChild(hazardEl);
+            });
+
+            playerEl.innerHTML = themeGraphics[currentTheme].player; playerEl.querySelector('.player-svg').id = 'player-sprite-svg';
+            playerEl.style.width = `calc(100% / ${cols})`; playerEl.style.height = `calc(100% / ${rows})`; objectsLayer.appendChild(playerEl);
+            updatePlayerVisual(); updateInstructions();
+        }
+
+        function updatePlayerVisual() {
+            playerEl.style.top = `calc(${playerPos.r} * (100% / ${rows}))`; playerEl.style.left = `calc(${playerPos.c} * (100% / ${cols}))`;
+            if(['space', 'ocean', 'volcano', 'ice', 'toxic'].includes(currentTheme)) {
+                const sprite = document.getElementById('player-sprite-svg'); if(sprite) sprite.style.transform = `rotate(${currentRotation}deg)`;
+            }
+            if(themeConfig[currentTheme].mode === 'dark') {
+                darkOverlay.style.display = 'block';
+                const x = (playerPos.c + 0.5) * (100 / cols); const y = (playerPos.r + 0.5) * (100 / rows);
+                darkOverlay.style.background = `radial-gradient(circle at ${x}% ${y}%, transparent 15%, rgba(0,0,0,0.95) 40%)`;
+            } else { darkOverlay.style.display = 'none'; }
+        }
+
+        function updateInstructions() {
+            const gpsDir = document.getElementById('gps-dir');
+            const gpsWarn = document.getElementById('gps-warn');
+            
+            if (playerPos.r === exitPos.r && playerPos.c === exitPos.c) { gpsDir.innerText = "¡OBJETIVO ALCANZADO!"; gpsWarn.innerText = ""; return; }
+            
+            let trapNearby = false;
+            for(let tr of traps) {
+                if(Math.abs(tr.r - playerPos.r) <= 1 && Math.abs(tr.c - playerPos.c) <= 1) { trapNearby = true; break; }
+            }
+
+            const path = getSafePath(playerPos.r, playerPos.c);
+            
+            if (path.length > 0) { 
+                gpsDir.innerText = `RUTA: AVANZA AL ${path[0]}`; gpsDir.style.color = themeConfig[currentTheme].color;
+                if (trapNearby) { gpsWarn.innerText = "[ ¡ALERTA! AMENAZA CERCANA ]"; gpsWarn.className = "danger-alert"; } 
+                else { gpsWarn.innerText = "[ ZONA DESPEJADA ]"; gpsWarn.className = "safe-alert"; }
+            } else { gpsDir.innerText = "¡SIN SALIDA!"; gpsDir.style.color = "#ff0000"; gpsWarn.innerText = ""; }
+        }
+
+        function movePlayer(direction) {
+            if (isAnimating) return; let moved = false;
+            const step = (dir) => {
+                const cell = grid[playerPos.r][playerPos.c];
+                if (dir === "Up" && !cell.walls[0]) { playerPos.r--; currentRotation = 0; return true; }
+                if (dir === "Down" && !cell.walls[2]) { playerPos.r++; currentRotation = 180; return true; }
+                if (dir === "Left" && !cell.walls[3]) { playerPos.c--; currentRotation = -90; return true; }
+                if (dir === "Right" && !cell.walls[1]) { playerPos.c++; currentRotation = 90; return true; }
+                return false;
+            };
+            if(themeConfig[currentTheme].mode === 'ice') { while(step(direction)) { moved = true; } } else { moved = step(direction); }
+            if (moved) { updatePlayerVisual(); checkRules(); if(!isAnimating) updateInstructions(); }
+        }
+
+        document.addEventListener('keydown', (e) => { if(e.key.startsWith('Arrow')) { e.preventDefault(); movePlayer(e.key.replace('Arrow', '')); } });
+
+        function killPlayer(msg) {
+            clearInterval(timerInterval); const data = themeConfig[currentTheme]; 
+            document.getElementById('gps-dir').innerText = msg || data.crash; document.getElementById('gps-warn').innerText = "SISTEMA CRÍTICO"; 
+            document.getElementById('gps-dir').style.color = data.errorColor; isAnimating = true; 
+            setTimeout(() => { resetGame(); }, 1200);
+        }
+
+        function checkRules() {
+            if (traps.some(t => t.r === playerPos.r && t.c === playerPos.c)) { killPlayer(); return; }
+            if (playerPos.r === exitPos.r && playerPos.c === exitPos.c) {
+                clearInterval(timerInterval);
+                document.getElementById('gps-dir').innerText = themeConfig[currentTheme].win; document.getElementById('gps-warn').innerText = ""; 
+                document.getElementById('gps-dir').style.color = "#fff"; isAnimating = true; 
+                setTimeout(() => { resetGame(); }, 1500);
+            }
+        }
+
+        function changeDifficulty(newSize) { rows = cols = newSize; exitPos = {r: rows - 1, c: cols - 1}; resetGame(); }
+
+        function startTimer() {
+            clearInterval(timerInterval); const data = themeConfig[currentTheme];
+            if (data.mode === 'time') {
+                timeLeft = data.timeLimit; document.getElementById('hud-label').innerText = `TIEMPO: ${timeLeft}s`; 
+                timerInterval = setInterval(() => {
+                    if(isAnimating) return; timeLeft--; document.getElementById('hud-label').innerText = `TIEMPO: ${timeLeft}s`;
+                    if(timeLeft <= 5) document.getElementById('hud-label').style.color = "#ff0000"; else document.getElementById('hud-label').style.color = "#777";
+                    if (timeLeft <= 0) { killPlayer("¡TIEMPO AGOTADO!"); }
+                }, 1000);
+            }
+        }
+
+        function resetGame() { 
+            playerPos = {r: 0, c: 0}; isAnimating = false; document.getElementById('gps-dir').innerText = "GENERANDO..."; 
+            document.getElementById('gps-warn').innerText = ""; document.getElementById('hud-label').style.color = "#777";
+            generateMaze(); render(); const sprite = document.getElementById('player-sprite-svg'); if(sprite) sprite.style.transform = `rotate(${currentRotation}deg)`; 
+            startTimer(); 
+        }
+
+        resetGame();
+    </script>
+</body>
+</html>
