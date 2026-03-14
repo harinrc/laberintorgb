@@ -46,7 +46,6 @@
         
         #instructions { font-family: 'Orbitron', sans-serif; color: var(--hud-color); font-size: 0.9em; text-shadow: 0 0 5px var(--hud-color); display: flex; flex-direction: column; align-items: flex-end;}
         
-        /* Animación para el aviso de peligro */
         @keyframes pulseWarning { 0% { opacity: 1; text-shadow: 0 0 10px red; } 50% { opacity: 0.4; text-shadow: none; } 100% { opacity: 1; text-shadow: 0 0 10px red; } }
         .danger-alert { color: #ff003c; animation: pulseWarning 1s infinite; font-weight: bold; }
         .safe-alert { color: #00ff88; }
@@ -138,7 +137,6 @@
         const themeGraphics = {
             cyber: { player: `<svg class="player-svg" viewBox="0 0 100 100"><defs><radialGradient id="gradP"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#00e5ff"/></radialGradient></defs><polygon points="50,5 95,25 95,75 50,95 5,75 5,25" fill="url(#gradP)" opacity="0.9"/></svg>`, trap: `<svg class="animated-trap" viewBox="0 0 100 100"><path d="M50,5 L90,20 V70 L50,95 L10,70 V20 Z" fill="#300" stroke="#ff003c" stroke-width="3"/><rect x="30" y="45" width="40" height="10" fill="#ff003c"><animate attributeName="opacity" values="0.2;1;0.2" dur="0.5s" repeatCount="indefinite"/></rect></svg>`, exit: `<svg class="animated-exit" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="#b000ff" stroke-width="3" stroke-dasharray="10 5"><animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="3s" repeatCount="indefinite"/></circle><circle cx="50" cy="50" r="25" fill="#b000ff"/></svg>` },
             space: { player: `<svg class="player-svg" viewBox="0 0 100 100"><polygon points="50,5 15,95 50,75 85,95" fill="#ddd" stroke="#ffaa00" stroke-width="2"/><rect x="40" y="80" width="20" height="15" fill="#ff0000"><animate attributeName="opacity" values="1;0.2;1" dur="0.2s" repeatCount="indefinite"/></rect></svg>`, trap: `<svg class="animated-trap" viewBox="0 0 100 100"><circle cx="50" cy="50" r="10" fill="#000"/><circle cx="50" cy="50" r="45" fill="none" stroke="#ff003c" stroke-width="2" stroke-dasharray="5 15"><animateTransform attributeName="transform" type="rotate" from="360 50 50" to="0 50 50" dur="1s" repeatCount="indefinite"/></circle></svg>`, exit: `<svg class="animated-exit" viewBox="0 0 100 100"><defs><radialGradient id="gradW"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#00ffcc"/></radialGradient></defs><circle cx="50" cy="50" r="40" fill="url(#gradW)"><animate attributeName="r" values="35;45;35" dur="1.5s" repeatCount="indefinite"/></circle></svg>` },
-            /* AQUÍ ESTÁ EL CAMBIO DE BIOLOGÍA: Efecto de latido en lugar de rotación */
             bio: { player: `<svg class="player-svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="#00ff88" opacity="0.7"><animate attributeName="r" values="43;47;43" dur="2s" repeatCount="indefinite"/></circle><circle cx="50" cy="50" r="15" fill="#fff"/></svg>`, trap: `<svg class="animated-trap" viewBox="0 0 100 100"><style> .bio-heart { transform-origin: 50% 50%; animation: bioPulse 1s infinite; } @keyframes bioPulse { 0% { transform: scale(0.8); } 15% { transform: scale(1.15); } 30% { transform: scale(0.8); } 45% { transform: scale(1.15); } 100% { transform: scale(0.8); } } </style><g class="bio-heart"><circle cx="50" cy="50" r="30" fill="#ff00cc"/><g stroke="#ff00cc" stroke-width="6"><line x1="50" y1="50" x2="50" y2="5"/><line x1="50" y1="50" x2="50" y2="95"/><line x1="50" y1="50" x2="5" y2="50"/><line x1="50" y1="50" x2="95" y2="50"/></g></g></svg>`, exit: `<svg class="animated-exit" viewBox="0 0 100 100"><path d="M30,10 Q50,50 30,90 M70,10 Q50,50 70,90" fill="none" stroke="#ffeb3b" stroke-width="6"><animate attributeName="stroke-dasharray" values="0,100;100,0" dur="1.5s" repeatCount="indefinite"/></path></svg>` },
             ocean: { player: `<svg class="player-svg" viewBox="0 0 100 100"><rect x="20" y="30" width="60" height="40" rx="20" fill="#ffcc00"/><circle cx="70" cy="50" r="10" fill="#00e5ff"/><rect x="40" y="15" width="10" height="20" fill="#ffcc00"/></svg>`, trap: `<svg class="animated-trap" viewBox="0 0 100 100"><circle cx="50" cy="50" r="35" fill="#444"/><circle cx="50" cy="10" r="6" fill="#f00"><animate attributeName="opacity" values="1;0;1" dur="0.8s" repeatCount="indefinite"/></circle><circle cx="50" cy="90" r="6" fill="#333"/><circle cx="10" cy="50" r="6" fill="#333"/><circle cx="90" cy="50" r="6" fill="#333"/></svg>`, exit: `<svg class="animated-exit" viewBox="0 0 100 100"><path d="M10,80 Q50,100 90,80 Q50,50 10,80" fill="#e0e0e0"/><circle cx="50" cy="65" r="15" fill="#fff" filter="drop-shadow(0 0 5px #0ff)"><animate attributeName="r" values="12;16;12" dur="2s" repeatCount="indefinite"/></circle></svg>` },
             volcano: { player: `<svg class="player-svg" viewBox="0 0 100 100"><polygon points="30,80 70,80 80,40 50,20 20,40" fill="#333" stroke="#ff5500" stroke-width="3"/><circle cx="50" cy="55" r="10" fill="#ff0000"/></svg>`, trap: `<svg class="animated-trap" viewBox="0 0 100 100"><path d="M20,90 Q50,10 80,90 Z" fill="#ff3300"><animate attributeName="d" values="M20,90 Q50,10 80,90 Z; M30,90 Q50,30 70,90 Z; M20,90 Q50,10 80,90 Z" dur="0.5s" repeatCount="indefinite"/></path></svg>`, exit: `<svg class="animated-exit" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#0055ff"/><path d="M20,50 Q50,20 80,50 Q50,80 20,50" fill="#00aaff"><animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="4s" repeatCount="indefinite"/></path></svg>` },
@@ -165,7 +163,7 @@
         let currentTheme = 'cyber'; let currentRotation = 0; 
         let rows = 12; let cols = 12;
         let grid = []; let playerPos = { r: 0, c: 0 }; let exitPos = { r: rows - 1, c: cols - 1 };
-        let traps = []; let isAnimating = false; let timerInterval; let timeLeft = 0;
+        let traps = []; let isAnimating = false; let isSliding = false; let timerInterval; let timeLeft = 0;
 
         const wrapper = document.getElementById('game-wrapper'); const mazeLayer = document.getElementById('maze-layer'); const objectsLayer = document.getElementById('objects-layer');
         const playerEl = document.createElement('div'); playerEl.className = 'player'; playerEl.id = 'player-container';
@@ -302,7 +300,8 @@
         }
 
         function movePlayer(direction) {
-            if (isAnimating) return; let moved = false;
+            if (isAnimating || isSliding) return; 
+            
             const step = (dir) => {
                 const cell = grid[playerPos.r][playerPos.c];
                 if (dir === "Up" && !cell.walls[0]) { playerPos.r--; currentRotation = 0; return true; }
@@ -311,8 +310,47 @@
                 if (dir === "Right" && !cell.walls[1]) { playerPos.c++; currentRotation = 90; return true; }
                 return false;
             };
-            if(themeConfig[currentTheme].mode === 'ice') { while(step(direction)) { moved = true; } } else { moved = step(direction); }
-            if (moved) { updatePlayerVisual(); checkRules(); if(!isAnimating) updateInstructions(); }
+
+            if(themeConfig[currentTheme].mode === 'ice') {
+                isSliding = true;
+                const slideInterval = setInterval(() => {
+                    if (step(direction)) {
+                        updatePlayerVisual();
+                        if (checkRules()) { 
+                            clearInterval(slideInterval);
+                            isSliding = false;
+                            return;
+                        }
+
+                        // NUEVA LÓGICA: Detenerse si hay una intersección
+                        const currentCell = grid[playerPos.r][playerPos.c];
+                        let isIntersection = false;
+                        
+                        if (direction === "Up" || direction === "Down") {
+                            // Si nos movemos en vertical, buscamos salidas horizontales
+                            if (!currentCell.walls[1] || !currentCell.walls[3]) isIntersection = true;
+                        } else if (direction === "Left" || direction === "Right") {
+                            // Si nos movemos en horizontal, buscamos salidas verticales
+                            if (!currentCell.walls[0] || !currentCell.walls[2]) isIntersection = true;
+                        }
+
+                        if (isIntersection) {
+                            clearInterval(slideInterval);
+                            isSliding = false;
+                            if (!isAnimating) updateInstructions();
+                        }
+
+                    } else { 
+                        // Chocó con una pared
+                        clearInterval(slideInterval);
+                        isSliding = false;
+                        if (!isAnimating) updateInstructions();
+                    }
+                }, 100);
+            } else {
+                let moved = step(direction);
+                if (moved) { updatePlayerVisual(); checkRules(); if(!isAnimating) updateInstructions(); }
+            }
         }
 
         document.addEventListener('keydown', (e) => { if(e.key.startsWith('Arrow')) { e.preventDefault(); movePlayer(e.key.replace('Arrow', '')); } });
@@ -325,13 +363,15 @@
         }
 
         function checkRules() {
-            if (traps.some(t => t.r === playerPos.r && t.c === playerPos.c)) { killPlayer(); return; }
+            if (traps.some(t => t.r === playerPos.r && t.c === playerPos.c)) { killPlayer(); return true; }
             if (playerPos.r === exitPos.r && playerPos.c === exitPos.c) {
                 clearInterval(timerInterval);
                 document.getElementById('gps-dir').innerText = themeConfig[currentTheme].win; document.getElementById('gps-warn').innerText = ""; 
                 document.getElementById('gps-dir').style.color = "#fff"; isAnimating = true; 
                 setTimeout(() => { resetGame(); }, 1500);
+                return true;
             }
+            return false;
         }
 
         function changeDifficulty(newSize) { rows = cols = newSize; exitPos = {r: rows - 1, c: cols - 1}; resetGame(); }
@@ -349,7 +389,7 @@
         }
 
         function resetGame() { 
-            playerPos = {r: 0, c: 0}; isAnimating = false; document.getElementById('gps-dir').innerText = "GENERANDO..."; 
+            playerPos = {r: 0, c: 0}; isAnimating = false; isSliding = false; document.getElementById('gps-dir').innerText = "GENERANDO..."; 
             document.getElementById('gps-warn').innerText = ""; document.getElementById('hud-label').style.color = "#777";
             generateMaze(); render(); const sprite = document.getElementById('player-sprite-svg'); if(sprite) sprite.style.transform = `rotate(${currentRotation}deg)`; 
             startTimer(); 
