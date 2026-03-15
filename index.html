@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Multiverso Labyrinth: Escáner Táctico</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&family=Rajdhani:wght@600&display=swap');
@@ -15,49 +15,70 @@
 
         body {
             background-color: var(--bg-color); color: #fff; font-family: 'Rajdhani', sans-serif;
-            margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center;
-            height: 100vh; overflow: hidden; transition: background-color 0.8s;
+            margin: 0; padding: 10px 5px; box-sizing: border-box;
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            height: 100dvh; /* Usa la altura dinámica real del dispositivo (evita la barra de Safari/Chrome) */
+            overflow-y: auto; overflow-x: hidden; transition: background-color 0.8s;
         }
 
         h1 {
-            font-family: 'Orbitron', sans-serif; font-size: clamp(1.2em, 5vw, 2em); margin: 5px 0;
-            text-shadow: 0 0 10px var(--hud-color); letter-spacing: 3px; text-transform: uppercase;
+            font-family: 'Orbitron', sans-serif; font-size: clamp(1.2em, 5vw, 2em); margin: 0 0 10px 0;
+            text-shadow: 0 0 10px var(--hud-color); letter-spacing: 2px; text-transform: uppercase; text-align: center;
         }
 
+        /* Temas Responsivos */
         .theme-selector-container {
-            width: 100%; max-width: 500px; margin-bottom: 10px;
-            display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+            width: 100%; max-width: 600px; margin-bottom: 10px;
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
         }
         .theme-btn {
-            background: rgba(255,255,255,0.05); border: 1px solid #444; color: #bbb; padding: 6px 12px;
-            border-radius: 20px; cursor: pointer; font-family: 'Orbitron', sans-serif; font-size: 0.75em;
-            transition: all 0.3s;
+            background: rgba(255,255,255,0.05); border: 1px solid #444; color: #bbb; 
+            padding: clamp(4px, 1.5vw, 8px) clamp(8px, 2vw, 12px);
+            border-radius: 20px; cursor: pointer; font-family: 'Orbitron', sans-serif; 
+            font-size: clamp(0.65em, 2vw, 0.8em); transition: all 0.3s;
         }
-        .theme-btn.active { background: rgba(255,255,255,0.15); color: #fff; border-color: var(--hud-color); box-shadow: 0 0 10px var(--hud-color); transform: scale(1.05); }
+        .theme-btn.active { background: rgba(255,255,255,0.15); color: #fff; border-color: var(--hud-color); box-shadow: 0 0 8px var(--hud-color); transform: scale(1.05); }
 
+        /* HUD Responsivo */
         #hud-container {
             background: rgba(10, 10, 15, 0.9); border: 1px solid rgba(255, 255, 255, 0.1);
-            border-left: 4px solid var(--hud-color); padding: 8px 15px; width: 90%; max-width: 450px;
-            display: flex; flex-direction: column; margin-bottom: 10px; gap: 5px;
+            border-left: 4px solid var(--hud-color); padding: 8px 15px; 
+            width: 95%; max-width: 500px; /* Se alinea mejor con el laberinto */
+            display: flex; flex-direction: column; margin-bottom: 10px; gap: 5px; box-sizing: border-box;
         }
         .hud-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-        .hud-text { font-size: 1.1em; color: #777; font-weight: bold; }
+        .hud-text { font-size: clamp(0.9em, 3vw, 1.1em); color: #777; font-weight: bold; }
         
-        #instructions { font-family: 'Orbitron', sans-serif; color: var(--hud-color); font-size: 0.9em; text-shadow: 0 0 5px var(--hud-color); display: flex; flex-direction: column; align-items: flex-end;}
+        #instructions { font-family: 'Orbitron', sans-serif; color: var(--hud-color); font-size: clamp(0.75em, 2.5vw, 0.9em); text-shadow: 0 0 5px var(--hud-color); display: flex; flex-direction: column; align-items: flex-end;}
         
         @keyframes pulseWarning { 0% { opacity: 1; text-shadow: 0 0 10px red; } 50% { opacity: 0.4; text-shadow: none; } 100% { opacity: 1; text-shadow: 0 0 10px red; } }
         .danger-alert { color: #ff003c; animation: pulseWarning 1s infinite; font-weight: bold; }
         .safe-alert { color: #00ff88; }
 
+        /* EL MAGIA RESPONSIVA DEL LABERINTO */
         .game-wrapper {
-            position: relative; width: 100%; max-width: 400px; aspect-ratio: 1 / 1;
-            background-color: #000; border-radius: 4px; box-shadow: 0 0 50px rgba(0, 229, 255, 0.1); overflow: hidden;
+            position: relative; 
+            /* El truco min(): Toma el valor que sea más pequeño para asegurar que siempre sea cuadrado y nunca se salga de la pantalla */
+            width: min(95vw, 55vh); 
+            height: min(95vw, 55vh);
+            background-color: #000; border-radius: 4px; box-shadow: 0 0 30px rgba(0, 229, 255, 0.15); 
+            overflow: hidden; flex-shrink: 0; margin-bottom: 10px;
         }
+        
+        @media (min-width: 768px) {
+            /* En pantallas grandes, permitimos que sea un poco más grande en relación a la altura */
+            .game-wrapper {
+                width: min(80vw, 65vh);
+                height: min(80vw, 65vh);
+            }
+            #hud-container { max-width: min(80vw, 65vh); }
+        }
+
         .maze-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: grid;
-            animation: rgbCycle 10s linear infinite; filter: drop-shadow(0 0 4px var(--maze-base)); 
+            animation: rgbCycle 10s linear infinite; filter: drop-shadow(0 0 3px var(--maze-base)); 
         }
-        @keyframes rgbCycle { 0% { filter: hue-rotate(0deg) drop-shadow(0 0 4px var(--maze-base)); } 100% { filter: hue-rotate(360deg) drop-shadow(0 0 4px var(--maze-base)); } }
+        @keyframes rgbCycle { 0% { filter: hue-rotate(0deg) drop-shadow(0 0 3px var(--maze-base)); } 100% { filter: hue-rotate(360deg) drop-shadow(0 0 3px var(--maze-base)); } }
 
         .cell { box-sizing: border-box; background-color: rgba(0, 0, 0, 0.5); }
         .wall-top { border-top: 2px solid var(--maze-base); }
@@ -67,7 +88,7 @@
 
         .objects-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
         .player { position: absolute; transition: top 0.1s linear, left 0.1s linear; z-index: 10; display: flex; justify-content: center; align-items: center; }
-        .player-svg { width: 90%; height: 90%; transition: transform 0.15s linear; filter: drop-shadow(0 0 8px #fff); }
+        .player-svg { width: 90%; height: 90%; transition: transform 0.15s linear; filter: drop-shadow(0 0 6px #fff); }
         .hazard, .exit { position: absolute; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
         .animated-trap { width: 90%; height: 90%; } .animated-exit { width: 80%; height: 80%; }
 
@@ -76,27 +97,38 @@
             pointer-events: none; z-index: 5; transition: background 0.1s linear; display: none;
         }
 
-        /* NUEVOS ESTILOS: PANTALLA FIN DE JUEGO */
+        /* Pantalla de Fin de Juego */
         #end-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(4px);
             z-index: 50; display: none; flex-direction: column; justify-content: center; align-items: center;
             text-align: center; padding: 20px; box-sizing: border-box;
         }
-        #end-title { font-family: 'Orbitron', sans-serif; font-size: 2em; margin: 0 0 10px 0; text-transform: uppercase; }
-        #end-message { font-size: 1.2em; color: #ccc; margin-bottom: 25px; }
+        #end-title { font-family: 'Orbitron', sans-serif; font-size: clamp(1.5em, 5vw, 2em); margin: 0 0 10px 0; text-transform: uppercase; }
+        #end-message { font-size: clamp(1em, 3vw, 1.2em); color: #ccc; margin-bottom: 20px; }
         
-        .controls-panel { margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
-        button.btn { font-family: 'Orbitron', sans-serif; background: transparent; color: #fff; border: 1px solid #666; padding: 6px 15px; cursor: pointer; text-transform: uppercase; border-radius: 4px; font-size: 0.8em; transition: 0.2s; }
+        /* Controles y Botones */
+        .controls-panel { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 15px; }
+        button.btn { font-family: 'Orbitron', sans-serif; background: transparent; color: #fff; border: 1px solid #666; padding: 6px 15px; cursor: pointer; text-transform: uppercase; border-radius: 4px; font-size: clamp(0.7em, 2vw, 0.8em); transition: 0.2s; }
         button.btn:active { background: rgba(255,255,255,0.15); }
         
-        .btn-play-again { border-color: var(--hud-color); box-shadow: 0 0 10px var(--hud-color); font-size: 1.1em; padding: 10px 20px; }
+        .btn-play-again { border-color: var(--hud-color); box-shadow: 0 0 10px var(--hud-color); font-size: clamp(0.9em, 4vw, 1.1em); padding: 10px 20px; }
         .btn-play-again:hover { background: rgba(255,255,255,0.1); transform: scale(1.05); }
 
-        .d-pad { display: grid; grid-template-columns: 50px 50px 50px; grid-template-rows: 50px 50px 50px; gap: 5px; margin-top: 10px; }
-        .d-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); color: #fff; display: flex; justify-content: center; align-items: center; font-size: 1.5em; cursor: pointer; user-select: none; border-radius: 10px; }
+        /* D-Pad Dinámico */
+        .d-pad { 
+            display: grid; 
+            grid-template-columns: repeat(3, min(16vw, 60px)); 
+            grid-template-rows: repeat(3, min(16vw, 60px)); 
+            gap: 5px; margin-bottom: 20px; 
+        }
+        .d-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); color: #fff; display: flex; justify-content: center; align-items: center; font-size: clamp(1.2em, 5vw, 1.8em); cursor: pointer; user-select: none; border-radius: 8px; touch-action: manipulation; }
+        .d-btn:active { background: rgba(255,255,255,0.2); transform: scale(0.95); }
         #d-up { grid-column: 2; grid-row: 1; } #d-left { grid-column: 1; grid-row: 2; } #d-right { grid-column: 3; grid-row: 2; } #d-down { grid-column: 2; grid-row: 3; }
-        @media (min-width: 768px) { .d-pad { display: none; } }
+        
+        @media (min-width: 768px) { 
+            .d-pad { display: none; } /* Ocultar en pantallas grandes asumiendo que usarán teclado */
+        }
     </style>
 </head>
 <body>
@@ -138,6 +170,12 @@
         </div>
     </div>
 
+    <div class="controls-panel">
+        <button class="btn" onclick="changeDifficulty(8)">Fácil</button>
+        <button class="btn" onclick="changeDifficulty(12)">Medio</button>
+        <button class="btn" onclick="changeDifficulty(16)">Difícil</button>
+    </div>
+
     <div class="d-pad">
         <div class="d-btn" id="d-up" onclick="movePlayer('Up')">▲</div>
         <div class="d-btn" id="d-left" onclick="movePlayer('Left')">◄</div>
@@ -145,13 +183,8 @@
         <div class="d-btn" id="d-down" onclick="movePlayer('Down')">▼</div>
     </div>
 
-    <div class="controls-panel">
-        <button class="btn" onclick="changeDifficulty(8)">Fácil</button>
-        <button class="btn" onclick="changeDifficulty(12)">Medio</button>
-        <button class="btn" onclick="changeDifficulty(16)">Difícil</button>
-    </div>
-
     <script>
+        // ... (El código JavaScript se mantiene EXACTAMENTE igual que la versión anterior) ...
         const themeGraphics = {
             cyber: { player: `<svg class="player-svg" viewBox="0 0 100 100"><defs><radialGradient id="gradP"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#00e5ff"/></radialGradient></defs><polygon points="50,5 95,25 95,75 50,95 5,75 5,25" fill="url(#gradP)" opacity="0.9"/></svg>`, trap: `<svg class="animated-trap" viewBox="0 0 100 100"><path d="M50,5 L90,20 V70 L50,95 L10,70 V20 Z" fill="#300" stroke="#ff003c" stroke-width="3"/><rect x="30" y="45" width="40" height="10" fill="#ff003c"><animate attributeName="opacity" values="0.2;1;0.2" dur="0.5s" repeatCount="indefinite"/></rect></svg>`, exit: `<svg class="animated-exit" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="#b000ff" stroke-width="3" stroke-dasharray="10 5"><animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="3s" repeatCount="indefinite"/></circle><circle cx="50" cy="50" r="25" fill="#b000ff"/></svg>` },
             space: { player: `<svg class="player-svg" viewBox="0 0 100 100"><polygon points="50,5 15,95 50,75 85,95" fill="#ddd" stroke="#ffaa00" stroke-width="2"/><rect x="40" y="80" width="20" height="15" fill="#ff0000"><animate attributeName="opacity" values="1;0.2;1" dur="0.2s" repeatCount="indefinite"/></rect></svg>`, trap: `<svg class="animated-trap" viewBox="0 0 100 100"><circle cx="50" cy="50" r="10" fill="#000"/><circle cx="50" cy="50" r="45" fill="none" stroke="#ff003c" stroke-width="2" stroke-dasharray="5 15"><animateTransform attributeName="transform" type="rotate" from="360 50 50" to="0 50 50" dur="1s" repeatCount="indefinite"/></circle></svg>`, exit: `<svg class="animated-exit" viewBox="0 0 100 100"><defs><radialGradient id="gradW"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#00ffcc"/></radialGradient></defs><circle cx="50" cy="50" r="40" fill="url(#gradW)"><animate attributeName="r" values="35;45;35" dur="1.5s" repeatCount="indefinite"/></circle></svg>` },
@@ -198,7 +231,6 @@
             document.documentElement.style.setProperty('--hud-color', data.color);
             document.documentElement.style.setProperty('--maze-base', data.baseColor);
             
-            // Ocultar pantalla de fin si se cambia de tema
             document.getElementById('end-screen').style.display = 'none';
             resetGame();
         }
@@ -371,7 +403,6 @@
 
         document.addEventListener('keydown', (e) => { if(e.key.startsWith('Arrow')) { e.preventDefault(); movePlayer(e.key.replace('Arrow', '')); } });
 
-        // NUEVA FUNCIÓN: Mostrar la pantalla de fin
         function showEndScreen(title, message, color) {
             const screen = document.getElementById('end-screen');
             const titleEl = document.getElementById('end-title');
@@ -384,13 +415,11 @@
             screen.style.display = 'flex';
         }
 
-        // NUEVA FUNCIÓN: Ocultar pantalla y reiniciar
         function hideEndScreen() {
             document.getElementById('end-screen').style.display = 'none';
             resetGame();
         }
 
-        // SE MODIFICÓ LA FUNCIÓN DE MORIR PARA MOSTRAR LA PANTALLA
         function killPlayer(msg) {
             clearInterval(timerInterval); const data = themeConfig[currentTheme]; 
             document.getElementById('gps-dir').innerText = msg || data.crash; 
@@ -398,13 +427,11 @@
             document.getElementById('gps-dir').style.color = data.errorColor; 
             isAnimating = true; 
             
-            // Retraso medio segundo para que veas que chocaste, y luego pantalla
             setTimeout(() => { 
                 showEndScreen(msg || data.crash, "Misión Fallida. Presiona el botón para reintentar.", data.errorColor);
             }, 600);
         }
 
-        // SE MODIFICÓ LA FUNCIÓN DE REGLAS PARA MOSTRAR LA PANTALLA DE VICTORIA
         function checkRules() {
             if (traps.some(t => t.r === playerPos.r && t.c === playerPos.c)) { killPlayer(); return true; }
             if (playerPos.r === exitPos.r && playerPos.c === exitPos.c) {
@@ -415,7 +442,6 @@
                 document.getElementById('gps-dir').style.color = "#fff"; 
                 isAnimating = true; 
                 
-                // Retraso medio segundo, luego victoria
                 setTimeout(() => { 
                     showEndScreen(data.win, "¡Objetivo alcanzado con éxito!", data.color);
                 }, 600);
@@ -426,7 +452,7 @@
 
         function changeDifficulty(newSize) { 
             rows = cols = newSize; exitPos = {r: rows - 1, c: cols - 1}; 
-            document.getElementById('end-screen').style.display = 'none'; // Por si cambian dificultad estando muertos
+            document.getElementById('end-screen').style.display = 'none'; 
             resetGame(); 
         }
 
