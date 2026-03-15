@@ -35,7 +35,6 @@
         }
         .theme-btn.active { background: rgba(255,255,255,0.15); color: #fff; border-color: var(--hud-color); box-shadow: 0 0 10px var(--hud-color); transform: scale(1.05); }
 
-        /* HUD MEJORADO */
         #hud-container {
             background: rgba(10, 10, 15, 0.9); border: 1px solid rgba(255, 255, 255, 0.1);
             border-left: 4px solid var(--hud-color); padding: 8px 15px; width: 90%; max-width: 450px;
@@ -77,10 +76,23 @@
             pointer-events: none; z-index: 5; transition: background 0.1s linear; display: none;
         }
 
+        /* NUEVOS ESTILOS: PANTALLA FIN DE JUEGO */
+        #end-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(4px);
+            z-index: 50; display: none; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; padding: 20px; box-sizing: border-box;
+        }
+        #end-title { font-family: 'Orbitron', sans-serif; font-size: 2em; margin: 0 0 10px 0; text-transform: uppercase; }
+        #end-message { font-size: 1.2em; color: #ccc; margin-bottom: 25px; }
+        
         .controls-panel { margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
-        button.btn { font-family: 'Orbitron', sans-serif; background: transparent; color: #fff; border: 1px solid #666; padding: 6px 15px; cursor: pointer; text-transform: uppercase; border-radius: 4px; font-size: 0.8em; }
+        button.btn { font-family: 'Orbitron', sans-serif; background: transparent; color: #fff; border: 1px solid #666; padding: 6px 15px; cursor: pointer; text-transform: uppercase; border-radius: 4px; font-size: 0.8em; transition: 0.2s; }
         button.btn:active { background: rgba(255,255,255,0.15); }
         
+        .btn-play-again { border-color: var(--hud-color); box-shadow: 0 0 10px var(--hud-color); font-size: 1.1em; padding: 10px 20px; }
+        .btn-play-again:hover { background: rgba(255,255,255,0.1); transform: scale(1.05); }
+
         .d-pad { display: grid; grid-template-columns: 50px 50px 50px; grid-template-rows: 50px 50px 50px; gap: 5px; margin-top: 10px; }
         .d-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); color: #fff; display: flex; justify-content: center; align-items: center; font-size: 1.5em; cursor: pointer; user-select: none; border-radius: 10px; }
         #d-up { grid-column: 2; grid-row: 1; } #d-left { grid-column: 1; grid-row: 2; } #d-right { grid-column: 3; grid-row: 2; } #d-down { grid-column: 2; grid-row: 3; }
@@ -118,6 +130,12 @@
         <div class="maze-layer" id="maze-layer"></div>
         <div class="objects-layer" id="objects-layer"></div>
         <div id="dark-overlay"></div>
+        
+        <div id="end-screen">
+            <h2 id="end-title">TITULO</h2>
+            <p id="end-message">Mensaje de estado</p>
+            <button class="btn btn-play-again" onclick="hideEndScreen()">REINICIAR SISTEMA</button>
+        </div>
     </div>
 
     <div class="d-pad">
@@ -179,6 +197,9 @@
             document.getElementById('hud-label').innerText = data.label + ":";
             document.documentElement.style.setProperty('--hud-color', data.color);
             document.documentElement.style.setProperty('--maze-base', data.baseColor);
+            
+            // Ocultar pantalla de fin si se cambia de tema
+            document.getElementById('end-screen').style.display = 'none';
             resetGame();
         }
 
@@ -322,15 +343,12 @@
                             return;
                         }
 
-                        // NUEVA LÓGICA: Detenerse si hay una intersección
                         const currentCell = grid[playerPos.r][playerPos.c];
                         let isIntersection = false;
                         
                         if (direction === "Up" || direction === "Down") {
-                            // Si nos movemos en vertical, buscamos salidas horizontales
                             if (!currentCell.walls[1] || !currentCell.walls[3]) isIntersection = true;
                         } else if (direction === "Left" || direction === "Right") {
-                            // Si nos movemos en horizontal, buscamos salidas verticales
                             if (!currentCell.walls[0] || !currentCell.walls[2]) isIntersection = true;
                         }
 
@@ -339,9 +357,7 @@
                             isSliding = false;
                             if (!isAnimating) updateInstructions();
                         }
-
                     } else { 
-                        // Chocó con una pared
                         clearInterval(slideInterval);
                         isSliding = false;
                         if (!isAnimating) updateInstructions();
@@ -355,26 +371,64 @@
 
         document.addEventListener('keydown', (e) => { if(e.key.startsWith('Arrow')) { e.preventDefault(); movePlayer(e.key.replace('Arrow', '')); } });
 
-        function killPlayer(msg) {
-            clearInterval(timerInterval); const data = themeConfig[currentTheme]; 
-            document.getElementById('gps-dir').innerText = msg || data.crash; document.getElementById('gps-warn').innerText = "SISTEMA CRÍTICO"; 
-            document.getElementById('gps-dir').style.color = data.errorColor; isAnimating = true; 
-            setTimeout(() => { resetGame(); }, 1200);
+        // NUEVA FUNCIÓN: Mostrar la pantalla de fin
+        function showEndScreen(title, message, color) {
+            const screen = document.getElementById('end-screen');
+            const titleEl = document.getElementById('end-title');
+            
+            titleEl.innerText = title;
+            titleEl.style.color = color;
+            titleEl.style.textShadow = `0 0 15px ${color}`;
+            document.getElementById('end-message').innerText = message;
+            
+            screen.style.display = 'flex';
         }
 
+        // NUEVA FUNCIÓN: Ocultar pantalla y reiniciar
+        function hideEndScreen() {
+            document.getElementById('end-screen').style.display = 'none';
+            resetGame();
+        }
+
+        // SE MODIFICÓ LA FUNCIÓN DE MORIR PARA MOSTRAR LA PANTALLA
+        function killPlayer(msg) {
+            clearInterval(timerInterval); const data = themeConfig[currentTheme]; 
+            document.getElementById('gps-dir').innerText = msg || data.crash; 
+            document.getElementById('gps-warn').innerText = "SISTEMA CRÍTICO"; 
+            document.getElementById('gps-dir').style.color = data.errorColor; 
+            isAnimating = true; 
+            
+            // Retraso medio segundo para que veas que chocaste, y luego pantalla
+            setTimeout(() => { 
+                showEndScreen(msg || data.crash, "Misión Fallida. Presiona el botón para reintentar.", data.errorColor);
+            }, 600);
+        }
+
+        // SE MODIFICÓ LA FUNCIÓN DE REGLAS PARA MOSTRAR LA PANTALLA DE VICTORIA
         function checkRules() {
             if (traps.some(t => t.r === playerPos.r && t.c === playerPos.c)) { killPlayer(); return true; }
             if (playerPos.r === exitPos.r && playerPos.c === exitPos.c) {
                 clearInterval(timerInterval);
-                document.getElementById('gps-dir').innerText = themeConfig[currentTheme].win; document.getElementById('gps-warn').innerText = ""; 
-                document.getElementById('gps-dir').style.color = "#fff"; isAnimating = true; 
-                setTimeout(() => { resetGame(); }, 1500);
+                const data = themeConfig[currentTheme];
+                document.getElementById('gps-dir').innerText = data.win; 
+                document.getElementById('gps-warn').innerText = ""; 
+                document.getElementById('gps-dir').style.color = "#fff"; 
+                isAnimating = true; 
+                
+                // Retraso medio segundo, luego victoria
+                setTimeout(() => { 
+                    showEndScreen(data.win, "¡Objetivo alcanzado con éxito!", data.color);
+                }, 600);
                 return true;
             }
             return false;
         }
 
-        function changeDifficulty(newSize) { rows = cols = newSize; exitPos = {r: rows - 1, c: cols - 1}; resetGame(); }
+        function changeDifficulty(newSize) { 
+            rows = cols = newSize; exitPos = {r: rows - 1, c: cols - 1}; 
+            document.getElementById('end-screen').style.display = 'none'; // Por si cambian dificultad estando muertos
+            resetGame(); 
+        }
 
         function startTimer() {
             clearInterval(timerInterval); const data = themeConfig[currentTheme];
